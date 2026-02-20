@@ -5,12 +5,21 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-
+import Dashboard from "./pages/Dashboard";
+import TrilhaSpring from "./pages/TrilhaSpring";
+import TrilhaReact from "./pages/TrilhaReact";
+import TrilhaJasper from "./pages/TrilhaJasper";
+import TrilhaJSF from "./pages/TrilhaJSF";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/dashboard"} component={Dashboard} />
+      <Route path={"/spring-java"} component={TrilhaSpring} />
+      <Route path={"/javascript-react"} component={TrilhaReact} />
+      <Route path={"/jasper-sql"} component={TrilhaJasper} />
+      <Route path={"/jsf-jsp"} component={TrilhaJSF} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
