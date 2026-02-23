@@ -130,24 +130,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Definição de Sucesso */}
-      <section className="py-12 px-4 bg-secondary/30">
-        <div className="container max-w-3xl mx-auto text-center">
-          <Card>
-            <CardHeader>
-              <CardTitle>Definição de Sucesso</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-semibold text-primary">
-                Dominado = Sabe explicar + usar
-              </p>
-              <p className="text-muted-foreground mt-2">
-                Você não apenas entende teoricamente, mas consegue aplicar na prática e explicar para alguém.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="border-t py-8 text-center text-muted-foreground">
