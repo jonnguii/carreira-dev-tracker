@@ -8,35 +8,44 @@ import { ArrowLeft, Plus, Trash2, Clock, Timer } from "lucide-react";
 interface StudySession {
   id: string;
   date: string;
-  topic: "Java" | "Spring Boot" | "SQL";
+  topic: string;
   subtopic: string;
   hours: number;
 }
 
 interface WeeklyStats {
-  java: number;
-  springBoot: number;
-  sql: number;
+  [key: string]: number;
   total: number;
 }
 
-const TOPICS = ["Java", "Spring Boot", "SQL"];
-
-const SUBTOPICS: Record<string, string[]> = {
-  Java: ["Fundamentos", "OOP", "Collections", "Exception Handling", "Streams/Lambdas", "Generics"],
-  "Spring Boot": ["IoC/DI", "Beans", "Controllers", "Services", "DTOs", "REST APIs", "JPA", "Configuração"],
-  SQL: ["SELECT/WHERE", "JOINs", "GROUP BY", "Agregações", "Subqueries", "Índices", "Otimização", "Transações"],
+const TOPICS_DATA: Record<string, string[]> = {
+  "Java (Alta)": ["Fundamentos", "OOP", "Collections", "Exception Handling", "Streams/Lambdas", "Generics"],
+  "Spring Boot (Alta)": ["IoC/DI", "Beans", "Controllers", "Services", "DTOs", "REST APIs", "JPA", "Configuração"],
+  "SQL (Alta)": ["SELECT/WHERE", "JOINs", "GROUP BY", "Agregações", "Subqueries", "Índices", "Otimização", "Transações"],
+  "JSF/JSP (Média-Alta)": ["Ciclo de Vida JSF", "Sintaxe JSP", "Integração com Spring"],
+  "HTML/CSS (Média)": ["Semântica HTML5", "Formulários", "Flexbox e Grid", "Responsividade", "Acessibilidade"],
+  "JavaScript (Média)": ["Variáveis", "Arrow Functions", "Promises e Async/Await", "Destructuring", "Módulos"],
+  "React (Média)": ["Componentes Funcionais", "JSX e Props", "Hooks", "Context API", "Consumo de APIs", "React Router", "Performance"],
+  "HTTP (Média)": ["Métodos HTTP", "Status Codes", "Headers e CORS", "REST Principles", "Autenticação"],
+  "Arquiteturas (Média)": ["MVC", "Arquitetura em Camadas", "SOLID Principles", "Design Patterns"],
+  "Fundamentos (Média)": ["Lógica de Programação", "Estruturas de Dados", "Algoritmos", "Big O Notation"],
+  "Git (Baixa)": ["Branches e Commits", "Merge, Rebase e Conflitos", "Pull Requests"],
+  "Segurança (Baixa)": ["OWASP Top 10", "Hashing e Encryption"],
+  "Testes (Baixa)": ["Testes Unitários", "Mocking", "TDD"],
+  "API (Baixa)": ["Design de APIs REST", "Documentação", "Rate Limiting e Pagination"],
+  "Docker (Baixa)": ["Conceitos e Dockerfile", "Docker Compose", "Volumes e Networks"],
+  "CI/CD (Baixa)": ["GitHub Actions", "Pipelines", "Deploy Automatizado"],
+  "AWS (Baixa)": ["EC2 e S3", "RDS e Lambda", "API Gateway"],
 };
+
+const TOPIC_CATEGORIES = Object.keys(TOPICS_DATA);
 
 export default function StudyTracker() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<"Java" | "Spring Boot" | "SQL">("Java");
-  const [selectedSubtopic, setSelectedSubtopic] = useState(SUBTOPICS["Java"][0]);
+  const [selectedTopic, setSelectedTopic] = useState(TOPIC_CATEGORIES[0]);
+  const [selectedSubtopic, setSelectedSubtopic] = useState(TOPICS_DATA[TOPIC_CATEGORIES[0]][0]);
   const [hours, setHours] = useState("");
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
-    java: 0,
-    springBoot: 0,
-    sql: 0,
     total: 0,
   });
 
@@ -60,19 +69,18 @@ export default function StudyTracker() {
     });
 
     const stats: WeeklyStats = {
-      java: 0,
-      springBoot: 0,
-      sql: 0,
       total: 0,
     };
 
     weekSessions.forEach((session) => {
-      if (session.topic === "Java") stats.java += session.hours;
-      if (session.topic === "Spring Boot") stats.springBoot += session.hours;
-      if (session.topic === "SQL") stats.sql += session.hours;
+      const topicKey = session.topic;
+      if (!stats[topicKey]) {
+        stats[topicKey] = 0;
+      }
+      stats[topicKey] += session.hours;
+      stats.total += session.hours;
     });
 
-    stats.total = stats.java + stats.springBoot + stats.sql;
     setWeeklyStats(stats);
 
     // Salvar no localStorage
@@ -101,12 +109,18 @@ export default function StudyTracker() {
     setSessions(sessions.filter((s) => s.id !== id));
   };
 
-  const handleTopicChange = (topic: "Java" | "Spring Boot" | "SQL") => {
+  const handleTopicChange = (topic: string) => {
     setSelectedTopic(topic);
-    setSelectedSubtopic(SUBTOPICS[topic][0]);
+    setSelectedSubtopic(TOPICS_DATA[topic][0]);
   };
 
   const progressPercentage = Math.min((weeklyStats.total / 10) * 100, 100);
+
+  // Agrupar sessões por tópico para exibição
+  const topicStats = TOPIC_CATEGORIES.map((topic) => ({
+    topic,
+    hours: weeklyStats[topic] || 0,
+  })).filter((stat) => stat.hours > 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -153,20 +167,19 @@ export default function StudyTracker() {
               </div>
 
               {/* Breakdown por tópico */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/30">
-                  <p className="text-sm text-muted-foreground">Java</p>
-                  <p className="text-2xl font-bold text-red-600">{weeklyStats.java.toFixed(1)}h</p>
+              {topicStats.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold mb-3">Horas por Tópico</p>
+                  <div className="space-y-2">
+                    {topicStats.map((stat) => (
+                      <div key={stat.topic} className="flex justify-between items-center p-2 bg-secondary/50 rounded">
+                        <span className="text-sm">{stat.topic}</span>
+                        <span className="font-bold text-primary">{stat.hours.toFixed(1)}h</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/30">
-                  <p className="text-sm text-muted-foreground">Spring Boot</p>
-                  <p className="text-2xl font-bold text-orange-600">{weeklyStats.springBoot.toFixed(1)}h</p>
-                </div>
-                <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
-                  <p className="text-sm text-muted-foreground">SQL</p>
-                  <p className="text-2xl font-bold text-yellow-600">{weeklyStats.sql.toFixed(1)}h</p>
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -181,21 +194,17 @@ export default function StudyTracker() {
               {/* Seletor de Tópico */}
               <div>
                 <label className="text-sm font-semibold mb-2 block">Tópico</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {TOPICS.map((topic) => (
-                    <button
-                      key={topic}
-                      onClick={() => handleTopicChange(topic as "Java" | "Spring Boot" | "SQL")}
-                      className={`p-2 rounded-lg font-semibold transition-colors ${
-                        selectedTopic === topic
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-foreground hover:bg-secondary/80"
-                      }`}
-                    >
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => handleTopicChange(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-border bg-background text-foreground"
+                >
+                  {TOPIC_CATEGORIES.map((topic) => (
+                    <option key={topic} value={topic}>
                       {topic}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* Seletor de Sub-tema */}
@@ -206,7 +215,7 @@ export default function StudyTracker() {
                   onChange={(e) => setSelectedSubtopic(e.target.value)}
                   className="w-full p-2 rounded-lg border border-border bg-background text-foreground"
                 >
-                  {SUBTOPICS[selectedTopic].map((subtopic) => (
+                  {TOPICS_DATA[selectedTopic].map((subtopic) => (
                     <option key={subtopic} value={subtopic}>
                       {subtopic}
                     </option>
@@ -241,7 +250,7 @@ export default function StudyTracker() {
         <Card>
           <CardHeader>
             <CardTitle>Histórico de Sessões</CardTitle>
-            <CardDescription>Últimas 10 sessões</CardDescription>
+            <CardDescription>Últimas 15 sessões</CardDescription>
           </CardHeader>
           <CardContent>
             {sessions.length === 0 ? (
@@ -251,7 +260,7 @@ export default function StudyTracker() {
                 {sessions
                   .slice()
                   .reverse()
-                  .slice(0, 10)
+                  .slice(0, 15)
                   .map((session) => (
                     <div
                       key={session.id}
