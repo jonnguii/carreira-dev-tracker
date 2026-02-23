@@ -5,7 +5,9 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
+import DashboardV2 from "./pages/DashboardV2";
+import StudyTracker from "./pages/StudyTracker";
+import PomodoroPage from "./pages/PomodoroPage";
 import TrilhaSpring from "./pages/TrilhaSpring";
 import TrilhaReact from "./pages/TrilhaReact";
 import TrilhaJasper from "./pages/TrilhaJasper";
@@ -15,7 +17,9 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/dashboard"} component={Dashboard} />
+      <Route path={"/dashboard"} component={DashboardV2} />
+      <Route path={"/study-tracker"} component={StudyTracker} />
+      <Route path={"/pomodoro"} component={PomodoroPage} />
       <Route path={"/spring-java"} component={TrilhaSpring} />
       <Route path={"/javascript-react"} component={TrilhaReact} />
       <Route path={"/jasper-sql"} component={TrilhaJasper} />
@@ -37,7 +41,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        // switchable
+        switchable
       >
         <TooltipProvider>
           <Toaster />
