@@ -60,7 +60,7 @@ export default function DashboardV2() {
             s.id === subtopicId ? { ...s, completed: !s.completed } : s
           );
 
-          // Verificar se todos os sub-temas estão completos
+          // Verificar se todos os sub-temas estao completos
           const allCompleted = updatedSubtopics.every((s) => s.completed);
 
           return {
@@ -74,7 +74,7 @@ export default function DashboardV2() {
     );
   };
 
-  // Calcular estatísticas
+  // Calcular estatisticas
   const totalTopics = topics.length;
   const completedTopics = topics.filter((t) => t.completed).length;
   const totalSubtopics = topics.reduce((sum, t) => sum + t.subtopics.length, 0);
@@ -85,11 +85,19 @@ export default function DashboardV2() {
 
   const overallProgress = (completedSubtopics / totalSubtopics) * 100;
 
-  // Agrupar por categoria
+  // Funcao para obter prioridade
+  const getPriority = (category: string): number => {
+    if (category.includes("(Alta)")) return 0;
+    if (category.includes("(Media-Alta)")) return 1;
+    if (category.includes("(Media)")) return 2;
+    if (category.includes("(Baixa)")) return 3;
+    return 999;
+  };
+
+  // Agrupar por categoria e ordenar por prioridade
   const categories = Array.from(new Set(topics.map((t) => t.category))).sort((a, b) => {
-    const priorityOrder = { "(Alta)": 0, "(Média)": 1, "(Baixa)": 2 };
-    const aPriority = Object.entries(priorityOrder).find(([key]) => a.includes(key))?.[1] ?? 3;
-    const bPriority = Object.entries(priorityOrder).find(([key]) => b.includes(key))?.[1] ?? 3;
+    const aPriority = getPriority(a);
+    const bPriority = getPriority(b);
     if (aPriority !== bPriority) return aPriority - bPriority;
     return a.localeCompare(b);
   });
@@ -141,12 +149,12 @@ export default function DashboardV2() {
                     style={{ width: `${overallProgress}%` }}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">{overallProgress.toFixed(1)}% concluído</p>
+                <p className="text-sm text-muted-foreground mt-2">{overallProgress.toFixed(1)}% concluido</p>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Tópicos</p>
+                  <p className="text-sm text-muted-foreground">Topicos</p>
                   <p className="text-2xl font-bold text-primary">
                     {completedTopics}/{totalTopics}
                   </p>
@@ -166,7 +174,7 @@ export default function DashboardV2() {
           </CardContent>
         </Card>
 
-        {/* Tópicos por Categoria */}
+        {/* Topicos por Categoria */}
         {categories.map((category) => {
           const categoryTopics = topics.filter((t) => t.category === category);
           const categoryCompleted = categoryTopics.filter((t) => t.completed).length;
@@ -178,7 +186,7 @@ export default function DashboardV2() {
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-bold">{category}</h3>
                   <span className="text-sm text-muted-foreground">
-                    {categoryCompleted}/{categoryTopics.length} tópicos
+                    {categoryCompleted}/{categoryTopics.length} topicos
                   </span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
@@ -203,7 +211,7 @@ export default function DashboardV2() {
           );
         })}
 
-        {/* Botões de Ação */}
+        {/* Botoes de Acao */}
         <div className="flex gap-4 mt-12">
           <Button
             variant="outline"
