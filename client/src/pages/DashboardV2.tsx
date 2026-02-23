@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
 import { ArrowLeft, BookOpen, BarChart3 } from "lucide-react";
 import { TOPICS_WITH_SUBTOPICS, Topic } from "@/data/subtopics";
@@ -8,6 +9,7 @@ import ExpandableTopicItem from "@/components/ExpandableTopicItem";
 
 export default function DashboardV2() {
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   // Carregar dados do localStorage
   useEffect(() => {
@@ -26,12 +28,17 @@ export default function DashboardV2() {
     }
   }, [topics]);
 
+  // Inicializar categorias expandidas (todas expandidas por padrao)
+  useEffect(() => {
+    const allCategories = Array.from(new Set(topics.map((t) => t.category)));
+    setExpandedCategories(allCategories);
+  }, [topics]);
+
   const handleTopicToggle = (topicId: string) => {
     setTopics((prev) =>
       prev.map((topic) => {
         if (topic.id === topicId) {
           const newCompleted = !topic.completed;
-          // Se marcar como completo, marcar todos os sub-temas
           if (newCompleted) {
             return {
               ...topic,
@@ -39,7 +46,6 @@ export default function DashboardV2() {
               subtopics: topic.subtopics.map((s) => ({ ...s, completed: true })),
             };
           } else {
-            // Se desmarcar, desmarcar todos os sub-temas
             return {
               ...topic,
               completed: false,
@@ -60,7 +66,6 @@ export default function DashboardV2() {
             s.id === subtopicId ? { ...s, completed: !s.completed } : s
           );
 
-          // Verificar se todos os sub-temas estao completos
           const allCompleted = updatedSubtopics.every((s) => s.completed);
 
           return {
@@ -174,42 +179,61 @@ export default function DashboardV2() {
           </CardContent>
         </Card>
 
-        {/* Topicos por Categoria */}
-        {categories.map((category) => {
-          const categoryTopics = topics.filter((t) => t.category === category);
-          const categoryCompleted = categoryTopics.filter((t) => t.completed).length;
-          const categoryProgress = (categoryCompleted / categoryTopics.length) * 100;
+        {/* Topicos por Categoria com Accordion */}
+        <Accordion 
+          type="multiple" 
+          value={expandedCategories} 
+          onValueChange={setExpandedCategories} 
+          className="space-y-3"
+        >
+          {categories.map((category) => {
+            const categoryTopics = topics.filter((t) => t.category === category);
+            const categoryCompleted = categoryTopics.filter((t) => t.completed).length;
+            const categoryProgress = (categoryCompleted / categoryTopics.length) * 100;
 
-          return (
-            <div key={category} className="mb-8">
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-bold">{category}</h3>
-                  <span className="text-sm text-muted-foreground">
-                    {categoryCompleted}/{categoryTopics.length} topicos
-                  </span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-primary h-full transition-all duration-300"
-                    style={{ width: `${categoryProgress}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {categoryTopics.map((topic) => (
-                  <ExpandableTopicItem
-                    key={topic.id}
-                    topic={topic}
-                    onTopicToggle={handleTopicToggle}
-                    onSubtopicToggle={handleSubtopicToggle}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            return (
+              <AccordionItem 
+                key={category} 
+                value={category} 
+                className="border border-border rounded-lg overflow-hidden"
+              >
+                <AccordionTrigger className="px-4 py-4 hover:bg-secondary/50 transition-colors data-[state=open]:bg-secondary/30">
+                  <div className="flex justify-between items-center w-full pr-4 gap-4">
+                    <div className="flex-1 text-left">
+                      <h3 className="text-lg font-bold">{category}</h3>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          {categoryCompleted}/{categoryTopics.length} topicos
+                        </span>
+                        <div className="w-40 bg-secondary rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-primary h-full transition-all duration-300"
+                            style={{ width: `${categoryProgress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-muted-foreground min-w-fit">
+                          {categoryProgress.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 py-4 bg-background/50 border-t border-border">
+                  <div className="space-y-3">
+                    {categoryTopics.map((topic) => (
+                      <ExpandableTopicItem
+                        key={topic.id}
+                        topic={topic}
+                        onTopicToggle={handleTopicToggle}
+                        onSubtopicToggle={handleSubtopicToggle}
+                      />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
 
         {/* Botoes de Acao */}
         <div className="flex gap-4 mt-12">
