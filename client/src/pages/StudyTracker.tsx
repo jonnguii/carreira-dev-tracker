@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
 import { ArrowLeft, Plus, Trash2, Clock, Timer } from "lucide-react";
+import { useTopicsManager } from "@/hooks/useTopicsManager";
 
 interface StudySession {
   id: string;
   date: string;
-  topic: string;
-  subtopic: string;
+  topicId: string;
+  subtopicId: string;
   hours: number;
 }
 
@@ -18,42 +20,33 @@ interface WeeklyStats {
   total: number;
 }
 
-const TOPICS_DATA: Record<string, string[]> = {
-  "Java (Alta)": ["Fundamentos", "OOP", "Collections", "Exception Handling", "Streams/Lambdas", "Generics"],
-  "Spring Boot (Alta)": ["IoC/DI", "Beans", "Controllers", "Services", "DTOs", "REST APIs", "JPA", "Configuração"],
-  "SQL (Alta)": ["SELECT/WHERE", "JOINs", "GROUP BY", "Agregações", "Subqueries", "Índices", "Otimização", "Transações"],
-  "JSF/JSP (Média-Alta)": ["Ciclo de Vida JSF", "Sintaxe JSP", "Integração com Spring"],
-  "HTML/CSS (Média)": ["Semântica HTML5", "Formulários", "Flexbox e Grid", "Responsividade", "Acessibilidade"],
-  "JavaScript (Média)": ["Variáveis", "Arrow Functions", "Promises e Async/Await", "Destructuring", "Módulos"],
-  "React (Média)": ["Componentes Funcionais", "JSX e Props", "Hooks", "Context API", "Consumo de APIs", "React Router", "Performance"],
-  "HTTP (Média)": ["Métodos HTTP", "Status Codes", "Headers e CORS", "REST Principles", "Autenticação"],
-  "Arquiteturas (Média)": ["MVC", "Arquitetura em Camadas", "SOLID Principles", "Design Patterns"],
-  "Fundamentos (Média)": ["Lógica de Programação", "Estruturas de Dados", "Algoritmos", "Big O Notation"],
-  "Git (Baixa)": ["Branches e Commits", "Merge, Rebase e Conflitos", "Pull Requests"],
-  "Segurança (Baixa)": ["OWASP Top 10", "Hashing e Encryption"],
-  "Testes (Baixa)": ["Testes Unitários", "Mocking", "TDD"],
-  "API (Baixa)": ["Design de APIs REST", "Documentação", "Rate Limiting e Pagination"],
-  "Docker (Baixa)": ["Conceitos e Dockerfile", "Docker Compose", "Volumes e Networks"],
-  "CI/CD (Baixa)": ["GitHub Actions", "Pipelines", "Deploy Automatizado"],
-  "AWS (Baixa)": ["EC2 e S3", "RDS e Lambda", "API Gateway"],
-};
-
-const TOPIC_CATEGORIES = Object.keys(TOPICS_DATA);
-
 export default function StudyTracker() {
+  const { topics } = useTopicsManager();
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState(TOPIC_CATEGORIES[0]);
-  const [selectedSubtopic, setSelectedSubtopic] = useState(TOPICS_DATA[TOPIC_CATEGORIES[0]][0]);
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [selectedSubtopic, setSelectedSubtopic] = useState("");
   const [hours, setHours] = useState("");
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     total: 0,
   });
 
+  // Inicializar tópico selecionado
+  useEffect(() => {
+    if (topics.length > 0 && !selectedTopic) {
+      setSelectedTopic(topics[0].id);
+      setSelectedSubtopic(topics[0].subtopics[0]?.id || "");
+    }
+  }, [topics, selectedTopic]);
+
   // Carregar dados do localStorage
   useEffect(() => {
     const saved = localStorage.getItem("study-sessions");
     if (saved) {
-      setSessions(JSON.parse(saved));
+      try {
+        setSessions(JSON.parse(saved));
+      } catch (e) {
+        console.error("Erro ao carregar sessões:", e);
+      }
     }
   }, []);
 
@@ -73,7 +66,8 @@ export default function StudyTracker() {
     };
 
     weekSessions.forEach((session) => {
-      const topicKey = session.topic;
+      const topic = topics.find((t) => t.id === session.topicId);
+      const topicKey = topic ? `${topic.category} - ${topic.title}` : "Desconhecido";
       if (!stats[topicKey]) {
         stats[topicKey] = 0;
       }
@@ -85,7 +79,7 @@ export default function StudyTracker() {
 
     // Salvar no localStorage
     localStorage.setItem("study-sessions", JSON.stringify(sessions));
-  }, [sessions]);
+  }, [sessions, topics]);
 
   const addSession = () => {
     if (!hours || parseFloat(hours) <= 0) {
@@ -96,8 +90,8 @@ export default function StudyTracker() {
     const newSession: StudySession = {
       id: Date.now().toString(),
       date: new Date().toISOString().split("T")[0],
-      topic: selectedTopic,
-      subtopic: selectedSubtopic,
+      topicId: selectedTopic,
+      subtopicId: selectedSubtopic,
       hours: parseFloat(hours),
     };
 
@@ -109,18 +103,35 @@ export default function StudyTracker() {
     setSessions(sessions.filter((s) => s.id !== id));
   };
 
-  const handleTopicChange = (topic: string) => {
-    setSelectedTopic(topic);
-    setSelectedSubtopic(TOPICS_DATA[topic][0]);
+  const handleTopicChange = (topicId: string) => {
+    setSelectedTopic(topicId);
+    const topic = topics.find((t) => t.id === topicId);
+    if (topic && topic.subtopics.length > 0) {
+      setSelectedSubtopic(topic.subtopics[0].id);
+    }
   };
 
   const progressPercentage = Math.min((weeklyStats.total / 10) * 100, 100);
 
   // Agrupar sessões por tópico para exibição
-  const topicStats = TOPIC_CATEGORIES.map((topic) => ({
-    topic,
-    hours: weeklyStats[topic] || 0,
-  })).filter((stat) => stat.hours > 0);
+  const topicStats = Object.entries(weeklyStats)
+    .filter(([key, value]) => key !== "total" && value > 0)
+    .map(([topic, hours]) => ({
+      topic,
+      hours,
+    }));
+
+  // Obter tópico e sub-tópico selecionados
+  const currentTopic = topics.find((t) => t.id === selectedTopic);
+  const currentSubtopics = currentTopic?.subtopics || [];
+
+  // Obter nome formatado do tópico/sub-tópico para exibição
+  const getSessionDisplayName = (topicId: string, subtopicId: string) => {
+    const topic = topics.find((t) => t.id === topicId);
+    if (!topic) return "Tópico não encontrado";
+    const subtopic = topic.subtopics.find((s) => s.id === subtopicId);
+    return subtopic ? `${topic.category} - ${topic.title} > ${subtopic.name}` : `${topic.category} - ${topic.title}`;
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -194,34 +205,38 @@ export default function StudyTracker() {
               {/* Seletor de Tópico */}
               <div>
                 <label className="text-sm font-semibold mb-2 block">Tópico</label>
-                <select
-                  value={selectedTopic}
-                  onChange={(e) => handleTopicChange(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-border bg-background text-foreground"
-                >
-                  {TOPIC_CATEGORIES.map((topic) => (
-                    <option key={topic} value={topic}>
-                      {topic}
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedTopic} onValueChange={handleTopicChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um tópico..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topics.map((topic) => (
+                      <SelectItem key={topic.id} value={topic.id}>
+                        {topic.category} - {topic.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Seletor de Sub-tema */}
-              <div>
-                <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
-                <select
-                  value={selectedSubtopic}
-                  onChange={(e) => setSelectedSubtopic(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-border bg-background text-foreground"
-                >
-                  {TOPICS_DATA[selectedTopic].map((subtopic) => (
-                    <option key={subtopic} value={subtopic}>
-                      {subtopic}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {currentSubtopics.length > 0 && (
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
+                  <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um sub-tema..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentSubtopics.map((subtopic) => (
+                        <SelectItem key={subtopic.id} value={subtopic.id}>
+                          {subtopic.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Input de Horas */}
               <div>
@@ -269,12 +284,13 @@ export default function StudyTracker() {
                       <div className="flex items-center gap-3 flex-1">
                         <Clock className="w-4 h-4 text-muted-foreground" />
                         <div className="flex-1">
-                          <p className="font-semibold">{session.topic}</p>
-                          <p className="text-sm text-muted-foreground">{session.subtopic}</p>
+                          <p className="font-semibold text-sm">
+                            {getSessionDisplayName(session.topicId, session.subtopicId)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{session.date}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold">{session.hours}h</p>
-                          <p className="text-xs text-muted-foreground">{session.date}</p>
                         </div>
                       </div>
                       <Button

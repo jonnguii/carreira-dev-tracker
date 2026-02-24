@@ -3,30 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
-import { ArrowLeft, BookOpen, BarChart3 } from "lucide-react";
-import { TOPICS_WITH_SUBTOPICS, Topic } from "@/data/subtopics";
+import { ArrowLeft, BookOpen, BarChart3, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Topic } from "@/data/subtopics";
 import ExpandableTopicItem from "@/components/ExpandableTopicItem";
+import { useTopicsManager } from "@/hooks/useTopicsManager";
 
 export default function DashboardV2() {
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const {
+    topics,
+    setTopics,
+    editTopic,
+    editSubtopic,
+    addSubtopic,
+    deleteSubtopic,
+    addTopic,
+    deleteTopic,
+  } = useTopicsManager();
+
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-
-  // Carregar dados do localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("dashboard-v2-progress");
-    if (saved) {
-      setTopics(JSON.parse(saved));
-    } else {
-      setTopics(TOPICS_WITH_SUBTOPICS);
-    }
-  }, []);
-
-  // Salvar dados no localStorage
-  useEffect(() => {
-    if (topics.length > 0) {
-      localStorage.setItem("dashboard-v2-progress", JSON.stringify(topics));
-    }
-  }, [topics]);
+  const [newTopicName, setNewTopicName] = useState("");
+  const [newTopicCategory, setNewTopicCategory] = useState("(Alta)");
 
   // Inicializar categorias expandidas (todas expandidas por padrao)
   useEffect(() => {
@@ -79,6 +78,26 @@ export default function DashboardV2() {
     );
   };
 
+  const handleAddNewTopic = () => {
+    if (newTopicName.trim()) {
+      const categoryName = `Java${newTopicCategory}`;
+      addTopic({
+        category: categoryName,
+        title: newTopicName,
+        subtopics: [
+          {
+            id: `${Date.now()}-1`,
+            name: "Conceito base",
+            completed: false,
+          },
+        ],
+        completed: false,
+      });
+      setNewTopicName("");
+      setNewTopicCategory("(Alta)");
+    }
+  };
+
   // Calcular estatisticas
   const totalTopics = topics.length;
   const completedTopics = topics.filter((t) => t.completed).length;
@@ -124,6 +143,11 @@ export default function DashboardV2() {
             <Link href="/study-tracker">
               <Button variant="outline" size="sm">
                 Rastreador de Horas
+              </Button>
+            </Link>
+            <Link href="/pomodoro">
+              <Button variant="outline" size="sm">
+                Pomodoro
               </Button>
             </Link>
           </div>
@@ -179,11 +203,55 @@ export default function DashboardV2() {
           </CardContent>
         </Card>
 
+        {/* Botão para adicionar novo tópico */}
+        <div className="mb-8">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full gap-2">
+                <Plus className="w-4 h-4" />
+                Adicionar Novo Tópico
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Tópico</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Nome do Tópico</label>
+                  <Input
+                    value={newTopicName}
+                    onChange={(e) => setNewTopicName(e.target.value)}
+                    placeholder="Ex: Async/Await"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Prioridade</label>
+                  <Select value={newTopicCategory} onValueChange={setNewTopicCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="(Alta)">Alta</SelectItem>
+                      <SelectItem value="(Media-Alta)">Média-Alta</SelectItem>
+                      <SelectItem value="(Media)">Média</SelectItem>
+                      <SelectItem value="(Baixa)">Baixa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleAddNewTopic} className="w-full">
+                  Adicionar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {/* Topicos por Categoria com Accordion */}
-        <Accordion 
-          type="multiple" 
-          value={expandedCategories} 
-          onValueChange={setExpandedCategories} 
+        <Accordion
+          type="multiple"
+          value={expandedCategories}
+          onValueChange={setExpandedCategories}
           className="space-y-3"
         >
           {categories.map((category) => {
@@ -192,9 +260,9 @@ export default function DashboardV2() {
             const categoryProgress = (categoryCompleted / categoryTopics.length) * 100;
 
             return (
-              <AccordionItem 
-                key={category} 
-                value={category} 
+              <AccordionItem
+                key={category}
+                value={category}
                 className="border border-border rounded-lg overflow-hidden"
               >
                 <AccordionTrigger className="px-4 py-4 hover:bg-secondary/50 transition-colors data-[state=open]:bg-secondary/30">
@@ -226,6 +294,11 @@ export default function DashboardV2() {
                         topic={topic}
                         onTopicToggle={handleTopicToggle}
                         onSubtopicToggle={handleSubtopicToggle}
+                        onEditTopic={editTopic}
+                        onDeleteTopic={deleteTopic}
+                        onEditSubtopic={editSubtopic}
+                        onDeleteSubtopic={deleteSubtopic}
+                        onAddSubtopic={addSubtopic}
                       />
                     ))}
                   </div>
@@ -240,7 +313,7 @@ export default function DashboardV2() {
           <Button
             variant="outline"
             onClick={() => {
-              localStorage.removeItem("dashboard-v2-progress");
+              localStorage.removeItem("topics-data");
               window.location.reload();
             }}
             className="flex-1"
@@ -248,9 +321,8 @@ export default function DashboardV2() {
             Resetar Progresso
           </Button>
           <Link href="/study-tracker" className="flex-1">
-            <Button className="w-full gap-2">
-              <BookOpen className="w-4 h-4" />
-              Rastreador de Horas
+            <Button variant="outline" className="w-full">
+              Ir para Rastreador
             </Button>
           </Link>
         </div>

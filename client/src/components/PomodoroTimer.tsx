@@ -76,17 +76,7 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
     setTimeLeft(FOCUS_TIME);
   };
 
-  const skipSession = () => {
-    if (mode === "focus") {
-      setSessionsCompleted((prev) => prev + 1);
-      onSessionComplete?.(25);
-      setMode("break");
-      setTimeLeft(BREAK_TIME);
-    } else {
-      setMode("focus");
-      setTimeLeft(FOCUS_TIME);
-    }
-  };
+
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -174,15 +164,6 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
             )}
           </Button>
         </div>
-
-        {/* Botão Skip */}
-        <Button
-          onClick={skipSession}
-          variant="outline"
-          className="w-full font-semibold text-xs"
-        >
-          SKIP SESSION →
-        </Button>
 
         {/* Info estilo terminal */}
         <div className="mt-6 p-3 bg-secondary/50 border border-border rounded text-xs text-muted-foreground font-mono">

@@ -14,7 +14,7 @@ export default function Home() {
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Code className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-primary">Trilha Dev</h1>
+            <h1 className="text-2xl font-bold text-primary">Roadmappnpm Dev</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -39,10 +39,10 @@ export default function Home() {
       <section className="py-16 px-4">
         <div className="container max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            De Estagiário a Desenvolvedor Júnior
+            Dev Beginner Roadmap
           </h2>
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-            Sua jornada personalizada para evoluir em Java, Spring Boot e SQL com rastreamento de progresso e metas semanais.
+            Minha jornada para evoluir em programação com rastreamento de progresso e metas semanais.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link href="/dashboard">
@@ -96,7 +96,7 @@ export default function Home() {
       <section className="py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <h3 className="text-2xl font-bold mb-8 text-center">
-            Seu Foco Inicial
+            Meu Foco Inicial
           </h3>
           
           <div className="grid md:grid-cols-3 gap-6">
@@ -134,7 +134,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-8 text-center text-muted-foreground">
-        <p>Trilha de Carreira Dev • Desenvolvido para João Guilherme</p>
+        <p>Roadmap Dev • Desenvolvido para o João Guilherme</p>
       </footer>
     </div>
   );
