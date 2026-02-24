@@ -21,8 +21,8 @@ interface PomodoroSession {
 
 export default function PomodoroPage() {
   const { topics } = useTopicsManager();
-  const [selectedTopic, setSelectedTopic] = useState<string>("");
-  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("");
+  const [selectedTopic, setSelectedTopic] = useState<string>("none");
+  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("none");
   const [history, setHistory] = useState<PomodoroSession[]>([]);
   const [editingSession, setEditingSession] = useState<PomodoroSession | null>(null);
   const [editValues, setEditValues] = useState({ sessions: 0, focus: 0, break: 0 });
@@ -63,8 +63,8 @@ export default function PomodoroPage() {
           totalMinutes: updated[existingIndex].totalMinutes + focusMinutes,
           focusMinutes: updated[existingIndex].focusMinutes + focusMinutes,
           breakMinutes: updated[existingIndex].breakMinutes + breakMinutes,
-          topicId: selectedTopic || updated[existingIndex].topicId,
-          subtopicId: selectedSubtopic || updated[existingIndex].subtopicId,
+          topicId: selectedTopic !== "none" ? selectedTopic : updated[existingIndex].topicId,
+          subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : updated[existingIndex].subtopicId,
         };
         return updated;
       } else {
@@ -76,8 +76,8 @@ export default function PomodoroPage() {
           totalMinutes: focusMinutes,
           focusMinutes,
           breakMinutes,
-          topicId: selectedTopic || undefined,
-          subtopicId: selectedSubtopic || undefined,
+          topicId: selectedTopic !== "none" ? selectedTopic : undefined,
+          subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : undefined,
         };
         return [newSession, ...prev];
       }
@@ -125,7 +125,7 @@ export default function PomodoroPage() {
   };
 
   // Obter tópico selecionado
-  const currentTopic = selectedTopic ? topics.find((t) => t.id === selectedTopic) : null;
+  const currentTopic = selectedTopic !== "none" ? topics.find((t) => t.id === selectedTopic) : null;
 
   // Calcular estatísticas
   const totalSessionsAllTime = history.reduce((sum, s) => sum + s.sessionsCompleted, 0);
@@ -181,14 +181,14 @@ export default function PomodoroPage() {
                 value={selectedTopic}
                 onValueChange={(value) => {
                   setSelectedTopic(value);
-                  setSelectedSubtopic("");
+                  setSelectedSubtopic("none");
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Escolha um tópico..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem tópico</SelectItem>
+                  <SelectItem value="none">Sem tópico</SelectItem>
                   {topics.map((topic) => (
                     <SelectItem key={topic.id} value={topic.id}>
                       {topic.category} - {topic.title}
@@ -201,12 +201,12 @@ export default function PomodoroPage() {
             {currentTopic && currentTopic.subtopics.length > 0 && (
               <div>
                 <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
-                <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolha um sub-tema..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sem sub-tema</SelectItem>
+              <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um sub-tema..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem sub-tema</SelectItem>
                     {currentTopic.subtopics.map((subtopic) => (
                       <SelectItem key={subtopic.id} value={subtopic.id}>
                         {subtopic.name}

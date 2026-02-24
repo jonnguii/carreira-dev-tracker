@@ -23,8 +23,8 @@ interface WeeklyStats {
 export default function StudyTracker() {
   const { topics } = useTopicsManager();
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState("");
-  const [selectedSubtopic, setSelectedSubtopic] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("none");
+  const [selectedSubtopic, setSelectedSubtopic] = useState("none");
   const [hours, setHours] = useState("");
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     total: 0,
@@ -82,8 +82,8 @@ export default function StudyTracker() {
     const newSession: StudySession = {
       id: Date.now().toString(),
       date: new Date().toISOString().split("T")[0],
-      topicId: selectedTopic || undefined,
-      subtopicId: selectedSubtopic || undefined,
+      topicId: selectedTopic !== "none" ? selectedTopic : undefined,
+      subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : undefined,
       hours: parseFloat(hours),
     };
 
@@ -97,7 +97,7 @@ export default function StudyTracker() {
 
   const handleTopicChange = (topicId: string) => {
     setSelectedTopic(topicId);
-    setSelectedSubtopic("");
+    setSelectedSubtopic("none");
   };
 
   const progressPercentage = Math.min((weeklyStats.total / 10) * 100, 100);
@@ -111,7 +111,7 @@ export default function StudyTracker() {
     }));
 
   // Obter tópico e sub-tópico selecionados
-  const currentTopic = selectedTopic ? topics.find((t) => t.id === selectedTopic) : null;
+  const currentTopic = selectedTopic !== "none" ? topics.find((t) => t.id === selectedTopic) : null;
   const currentSubtopics = currentTopic?.subtopics || [];
 
   // Obter nome formatado do tópico/sub-tópico para exibição
@@ -200,7 +200,7 @@ export default function StudyTracker() {
                     <SelectValue placeholder="Escolha um tópico..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem tópico</SelectItem>
+                    <SelectItem value="none">Sem tópico</SelectItem>
                     {topics.map((topic) => (
                       <SelectItem key={topic.id} value={topic.id}>
                         {topic.category} - {topic.title}
@@ -219,7 +219,7 @@ export default function StudyTracker() {
                       <SelectValue placeholder="Escolha um sub-tema..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem sub-tema</SelectItem>
+                      <SelectItem value="none">Sem sub-tema</SelectItem>
                       {currentSubtopics.map((subtopic) => (
                         <SelectItem key={subtopic.id} value={subtopic.id}>
                           {subtopic.name}
