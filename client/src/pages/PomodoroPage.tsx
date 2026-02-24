@@ -25,7 +25,7 @@ export default function PomodoroPage() {
   const [selectedSubtopic, setSelectedSubtopic] = useState<string>("none");
   const [history, setHistory] = useState<PomodoroSession[]>([]);
   const [editingSession, setEditingSession] = useState<PomodoroSession | null>(null);
-  const [editValues, setEditValues] = useState({ sessions: 0, focus: 0, break: 0 });
+  const [editValues, setEditValues] = useState({ sessions: 0, focus: 0, break: 0, topicId: "none", subtopicId: "none" });
 
   // Carregar histórico do localStorage
   useEffect(() => {
@@ -83,6 +83,8 @@ export default function PomodoroPage() {
       sessions: session.sessionsCompleted,
       focus: session.focusMinutes,
       break: session.breakMinutes,
+      topicId: session.topicId || "none",
+      subtopicId: session.subtopicId || "none",
     });
   };
 
@@ -98,6 +100,8 @@ export default function PomodoroPage() {
               focusMinutes: editValues.focus,
               breakMinutes: editValues.break,
               totalMinutes: editValues.focus,
+              topicId: editValues.topicId !== "none" ? editValues.topicId : undefined,
+              subtopicId: editValues.subtopicId !== "none" ? editValues.subtopicId : undefined,
             }
           : s
       )
@@ -216,7 +220,7 @@ export default function PomodoroPage() {
               <div className="text-center p-3 bg-secondary/30 rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Tempo de Foco</p>
                 <p className="text-2xl font-bold text-primary">
-                  {totalHoursAllTime}h {remainingMinutes}m
+                  {(totalMinutesAllTime / 60).toFixed(1)}h
                 </p>
               </div>
               <div className="text-center p-3 bg-secondary/30 rounded-lg">
@@ -314,6 +318,45 @@ export default function PomodoroPage() {
                     onChange={(e) => setEditValues({ ...editValues, break: parseInt(e.target.value) || 0 })}
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Tópico</label>
+                  <Select
+                    value={editValues.topicId}
+                    onValueChange={(value) => setEditValues({ ...editValues, topicId: value, subtopicId: "none" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um tópico..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem tópico</SelectItem>
+                      {topics.map((topic) => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.category} - {topic.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editValues.topicId !== "none" && topics.find((t) => t.id === editValues.topicId)?.subtopics.length! > 0 && (
+                  <div>
+                    <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
+                    <Select value={editValues.subtopicId} onValueChange={(value) => setEditValues({ ...editValues, subtopicId: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Escolha um sub-tema..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem sub-tema</SelectItem>
+                        {topics
+                          .find((t) => t.id === editValues.topicId)
+                          ?.subtopics.map((subtopic) => (
+                            <SelectItem key={subtopic.id} value={subtopic.id}>
+                              {subtopic.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button onClick={handleSaveEdit} className="flex-1">
                     Salvar
