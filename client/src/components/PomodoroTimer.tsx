@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Save } from "lucide-react";
 
 interface PomodoroTimerProps {
   onSessionComplete?: (minutes: number) => void;
+  onSaveSession?: (focusMinutes: number, breakMinutes: number, sessionsCompleted: number) => void;
 }
 
 type TimerMode = "focus" | "break";
 
-export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
+export default function PomodoroTimer({ onSessionComplete, onSaveSession }: PomodoroTimerProps) {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutos em segundos
   const [isRunning, setIsRunning] = useState(false);
@@ -76,7 +77,13 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
     setTimeLeft(FOCUS_TIME);
   };
 
-
+  const handleSaveSession = () => {
+    const focusMinutes = (FOCUS_TIME - timeLeft) / 60;
+    const breakMinutes = sessionsCompleted * 5;
+    onSaveSession?.(focusMinutes, breakMinutes, sessionsCompleted);
+    resetTimer();
+    setSessionsCompleted(0);
+  };
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -164,6 +171,17 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
             )}
           </Button>
         </div>
+
+        {/* Botão Salvar Sessão */}
+        {(timeLeft < FOCUS_TIME || sessionsCompleted > 0) && (
+          <Button
+            onClick={handleSaveSession}
+            className="w-full mb-6 font-semibold bg-green-600 hover:bg-green-700"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Salvar Sessão
+          </Button>
+        )}
 
         {/* Info estilo terminal */}
         <div className="mt-6 p-3 bg-secondary/50 border border-border rounded text-xs text-muted-foreground font-mono">

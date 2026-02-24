@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { ArrowLeft, Clock, Trash2, Edit2, Save } from "lucide-react";
+import { ArrowLeft, Clock, Trash2, Edit2 } from "lucide-react";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import { useTopicsManager } from "@/hooks/useTopicsManager";
 
@@ -21,21 +21,11 @@ interface PomodoroSession {
 
 export default function PomodoroPage() {
   const { topics } = useTopicsManager();
-  const [totalMinutes, setTotalMinutes] = useState(0);
-  const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [selectedSubtopic, setSelectedSubtopic] = useState<string>("");
   const [history, setHistory] = useState<PomodoroSession[]>([]);
   const [editingSession, setEditingSession] = useState<PomodoroSession | null>(null);
   const [editValues, setEditValues] = useState({ sessions: 0, focus: 0, break: 0 });
-
-  // Inicializar tópico selecionado
-  useEffect(() => {
-    if (topics.length > 0 && !selectedTopic) {
-      setSelectedTopic(topics[0].id);
-      setSelectedSubtopic(topics[0].subtopics[0]?.id || "");
-    }
-  }, [topics, selectedTopic]);
 
   // Carregar histórico do localStorage
   useEffect(() => {
@@ -56,13 +46,8 @@ export default function PomodoroPage() {
     }
   }, [history]);
 
-  const handleSessionComplete = (minutes: number) => {
-    setTotalMinutes((prev) => prev + minutes);
-    setSessionsCompleted((prev) => prev + 1);
-  };
-
-  const handleSaveSession = () => {
-    if (totalMinutes === 0) return;
+  const handleSaveSessionFromTimer = (focusMinutes: number, breakMinutes: number, sessionsCompleted: number) => {
+    if (focusMinutes === 0 && sessionsCompleted === 0) return;
 
     const today = new Date().toLocaleDateString("pt-BR");
 
@@ -75,9 +60,9 @@ export default function PomodoroPage() {
         updated[existingIndex] = {
           ...updated[existingIndex],
           sessionsCompleted: updated[existingIndex].sessionsCompleted + sessionsCompleted,
-          totalMinutes: updated[existingIndex].totalMinutes + totalMinutes,
-          focusMinutes: updated[existingIndex].focusMinutes + totalMinutes,
-          breakMinutes: updated[existingIndex].breakMinutes + sessionsCompleted * 5,
+          totalMinutes: updated[existingIndex].totalMinutes + focusMinutes,
+          focusMinutes: updated[existingIndex].focusMinutes + focusMinutes,
+          breakMinutes: updated[existingIndex].breakMinutes + breakMinutes,
           topicId: selectedTopic || updated[existingIndex].topicId,
           subtopicId: selectedSubtopic || updated[existingIndex].subtopicId,
         };
@@ -88,21 +73,15 @@ export default function PomodoroPage() {
           id: Date.now().toString(),
           date: today,
           sessionsCompleted,
-          totalMinutes,
-          focusMinutes: totalMinutes,
-          breakMinutes: sessionsCompleted * 5,
-          topicId: selectedTopic,
-          subtopicId: selectedSubtopic,
+          totalMinutes: focusMinutes,
+          focusMinutes,
+          breakMinutes,
+          topicId: selectedTopic || undefined,
+          subtopicId: selectedSubtopic || undefined,
         };
         return [newSession, ...prev];
       }
     });
-
-    // Resetar contadores
-    setTotalMinutes(0);
-    setSessionsCompleted(0);
-    setSelectedTopic("");
-    setSelectedSubtopic("");
   };
 
   const handleDeleteSession = (id: string) => {
@@ -187,13 +166,13 @@ export default function PomodoroPage() {
       <div className="container py-8 max-w-4xl">
         {/* Timer Principal */}
         <div className="mb-8">
-          <PomodoroTimer onSessionComplete={handleSessionComplete} />
+          <PomodoroTimer onSaveSession={handleSaveSessionFromTimer} />
         </div>
 
         {/* Seletor de Tópico */}
         <Card className="mb-8 border-primary/50">
           <CardHeader>
-            <CardTitle>Selecione o Tópico Estudado</CardTitle>
+            <CardTitle>Selecione o Tópico Estudado (Opcional)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -209,6 +188,7 @@ export default function PomodoroPage() {
                   <SelectValue placeholder="Escolha um tópico..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Sem tópico</SelectItem>
                   {topics.map((topic) => (
                     <SelectItem key={topic.id} value={topic.id}>
                       {topic.category} - {topic.title}
@@ -226,6 +206,7 @@ export default function PomodoroPage() {
                     <SelectValue placeholder="Escolha um sub-tema..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Sem sub-tema</SelectItem>
                     {currentTopic.subtopics.map((subtopic) => (
                       <SelectItem key={subtopic.id} value={subtopic.id}>
                         {subtopic.name}
@@ -234,41 +215,6 @@ export default function PomodoroPage() {
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Estatísticas da Sessão Atual */}
-        <Card className="mb-8 border-2 border-primary/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Sessão Atual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="text-center p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Pomodoros</p>
-                <p className="text-3xl font-bold text-primary">{sessionsCompleted}</p>
-              </div>
-              <div className="text-center p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Tempo de Foco</p>
-                <p className="text-3xl font-bold text-primary">
-                  {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
-                </p>
-              </div>
-              <div className="text-center p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Tempo de Pausa</p>
-                <p className="text-3xl font-bold text-primary">{sessionsCompleted * 5}m</p>
-              </div>
-            </div>
-
-            {totalMinutes > 0 && (
-              <Button onClick={handleSaveSession} className="w-full" size="lg" variant="default">
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Sessão
-              </Button>
             )}
           </CardContent>
         </Card>
@@ -321,7 +267,7 @@ export default function PomodoroPage() {
                         <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                           <span>📅 {session.date}</span>
                           <span>🍅 {session.sessionsCompleted} pomodoros</span>
-                          <span>⏱️ {Math.floor(session.focusMinutes / 60)}h {session.focusMinutes % 60}m foco</span>
+                          <span>⏱️ {Math.floor(session.focusMinutes / 60)}h {Math.round(session.focusMinutes % 60)}m foco</span>
                           <span>☕ {session.breakMinutes}m pausa</span>
                         </div>
                       </div>

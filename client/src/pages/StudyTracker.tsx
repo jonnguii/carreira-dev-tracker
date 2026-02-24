@@ -10,8 +10,8 @@ import { useTopicsManager } from "@/hooks/useTopicsManager";
 interface StudySession {
   id: string;
   date: string;
-  topicId: string;
-  subtopicId: string;
+  topicId?: string;
+  subtopicId?: string;
   hours: number;
 }
 
@@ -29,14 +29,6 @@ export default function StudyTracker() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     total: 0,
   });
-
-  // Inicializar tópico selecionado
-  useEffect(() => {
-    if (topics.length > 0 && !selectedTopic) {
-      setSelectedTopic(topics[0].id);
-      setSelectedSubtopic(topics[0].subtopics[0]?.id || "");
-    }
-  }, [topics, selectedTopic]);
 
   // Carregar dados do localStorage
   useEffect(() => {
@@ -66,8 +58,8 @@ export default function StudyTracker() {
     };
 
     weekSessions.forEach((session) => {
-      const topic = topics.find((t) => t.id === session.topicId);
-      const topicKey = topic ? `${topic.category} - ${topic.title}` : "Desconhecido";
+      const topic = session.topicId ? topics.find((t) => t.id === session.topicId) : null;
+      const topicKey = topic ? `${topic.category} - ${topic.title}` : "Sem tópico";
       if (!stats[topicKey]) {
         stats[topicKey] = 0;
       }
@@ -90,8 +82,8 @@ export default function StudyTracker() {
     const newSession: StudySession = {
       id: Date.now().toString(),
       date: new Date().toISOString().split("T")[0],
-      topicId: selectedTopic,
-      subtopicId: selectedSubtopic,
+      topicId: selectedTopic || undefined,
+      subtopicId: selectedSubtopic || undefined,
       hours: parseFloat(hours),
     };
 
@@ -105,10 +97,7 @@ export default function StudyTracker() {
 
   const handleTopicChange = (topicId: string) => {
     setSelectedTopic(topicId);
-    const topic = topics.find((t) => t.id === topicId);
-    if (topic && topic.subtopics.length > 0) {
-      setSelectedSubtopic(topic.subtopics[0].id);
-    }
+    setSelectedSubtopic("");
   };
 
   const progressPercentage = Math.min((weeklyStats.total / 10) * 100, 100);
@@ -122,14 +111,15 @@ export default function StudyTracker() {
     }));
 
   // Obter tópico e sub-tópico selecionados
-  const currentTopic = topics.find((t) => t.id === selectedTopic);
+  const currentTopic = selectedTopic ? topics.find((t) => t.id === selectedTopic) : null;
   const currentSubtopics = currentTopic?.subtopics || [];
 
   // Obter nome formatado do tópico/sub-tópico para exibição
-  const getSessionDisplayName = (topicId: string, subtopicId: string) => {
+  const getSessionDisplayName = (topicId?: string, subtopicId?: string) => {
+    if (!topicId) return "Sem tópico";
     const topic = topics.find((t) => t.id === topicId);
     if (!topic) return "Tópico não encontrado";
-    const subtopic = topic.subtopics.find((s) => s.id === subtopicId);
+    const subtopic = subtopicId ? topic.subtopics.find((s) => s.id === subtopicId) : null;
     return subtopic ? `${topic.category} - ${topic.title} > ${subtopic.name}` : `${topic.category} - ${topic.title}`;
   };
 
@@ -202,14 +192,15 @@ export default function StudyTracker() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Seletor de Tópico */}
+              {/* Seletor de Tópico (opcional) */}
               <div>
-                <label className="text-sm font-semibold mb-2 block">Tópico</label>
+                <label className="text-sm font-semibold mb-2 block">Tópico (Opcional)</label>
                 <Select value={selectedTopic} onValueChange={handleTopicChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Escolha um tópico..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Sem tópico</SelectItem>
                     {topics.map((topic) => (
                       <SelectItem key={topic.id} value={topic.id}>
                         {topic.category} - {topic.title}
@@ -219,15 +210,16 @@ export default function StudyTracker() {
                 </Select>
               </div>
 
-              {/* Seletor de Sub-tema */}
+              {/* Seletor de Sub-tema (opcional) */}
               {currentSubtopics.length > 0 && (
                 <div>
-                  <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
+                  <label className="text-sm font-semibold mb-2 block">Sub-tema (Opcional)</label>
                   <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
                     <SelectTrigger>
                       <SelectValue placeholder="Escolha um sub-tema..." />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Sem sub-tema</SelectItem>
                       {currentSubtopics.map((subtopic) => (
                         <SelectItem key={subtopic.id} value={subtopic.id}>
                           {subtopic.name}
