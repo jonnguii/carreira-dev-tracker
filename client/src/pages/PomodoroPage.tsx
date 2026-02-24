@@ -51,37 +51,19 @@ export default function PomodoroPage() {
 
     const today = new Date().toLocaleDateString("pt-BR");
 
-    setHistory((prev) => {
-      const existingIndex = prev.findIndex((s) => s.date === today);
+    // Criar uma nova sessão separada (não sobrescrever)
+    const newSession: PomodoroSession = {
+      id: Date.now().toString(),
+      date: today,
+      sessionsCompleted,
+      totalMinutes: focusMinutes,
+      focusMinutes,
+      breakMinutes,
+      topicId: selectedTopic !== "none" ? selectedTopic : undefined,
+      subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : undefined,
+    };
 
-      if (existingIndex !== -1) {
-        // Atualizar sessão do dia
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          sessionsCompleted: updated[existingIndex].sessionsCompleted + sessionsCompleted,
-          totalMinutes: updated[existingIndex].totalMinutes + focusMinutes,
-          focusMinutes: updated[existingIndex].focusMinutes + focusMinutes,
-          breakMinutes: updated[existingIndex].breakMinutes + breakMinutes,
-          topicId: selectedTopic !== "none" ? selectedTopic : updated[existingIndex].topicId,
-          subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : updated[existingIndex].subtopicId,
-        };
-        return updated;
-      } else {
-        // Criar nova sessão
-        const newSession: PomodoroSession = {
-          id: Date.now().toString(),
-          date: today,
-          sessionsCompleted,
-          totalMinutes: focusMinutes,
-          focusMinutes,
-          breakMinutes,
-          topicId: selectedTopic !== "none" ? selectedTopic : undefined,
-          subtopicId: selectedSubtopic !== "none" ? selectedSubtopic : undefined,
-        };
-        return [newSession, ...prev];
-      }
-    });
+    setHistory((prev) => [newSession, ...prev]);
   };
 
   const handleDeleteSession = (id: string) => {
@@ -131,6 +113,7 @@ export default function PomodoroPage() {
   const totalSessionsAllTime = history.reduce((sum, s) => sum + s.sessionsCompleted, 0);
   const totalMinutesAllTime = history.reduce((sum, s) => sum + s.totalMinutes, 0);
   const totalHoursAllTime = Math.floor(totalMinutesAllTime / 60);
+  const remainingMinutes = totalMinutesAllTime % 60;
 
   // Obter nome do tópico e sub-tópico
   const getTopicName = (topicId?: string, subtopicId?: string) => {
@@ -201,12 +184,12 @@ export default function PomodoroPage() {
             {currentTopic && currentTopic.subtopics.length > 0 && (
               <div>
                 <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
-              <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha um sub-tema..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem sub-tema</SelectItem>
+                <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um sub-tema..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem sub-tema</SelectItem>
                     {currentTopic.subtopics.map((subtopic) => (
                       <SelectItem key={subtopic.id} value={subtopic.id}>
                         {subtopic.name}
@@ -231,11 +214,13 @@ export default function PomodoroPage() {
                 <p className="text-2xl font-bold text-primary">{totalSessionsAllTime}</p>
               </div>
               <div className="text-center p-3 bg-secondary/30 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Horas de Foco</p>
-                <p className="text-2xl font-bold text-primary">{totalHoursAllTime}h</p>
+                <p className="text-xs text-muted-foreground mb-1">Tempo de Foco</p>
+                <p className="text-2xl font-bold text-primary">
+                  {totalHoursAllTime}h {remainingMinutes}m
+                </p>
               </div>
               <div className="text-center p-3 bg-secondary/30 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Dias Estudados</p>
+                <p className="text-xs text-muted-foreground mb-1">Sessões Registradas</p>
                 <p className="text-2xl font-bold text-primary">{history.length}</p>
               </div>
             </div>
@@ -257,41 +242,38 @@ export default function PomodoroPage() {
               <p className="text-muted-foreground text-center py-8">Nenhuma sessão registrada ainda</p>
             ) : (
               <div className="space-y-2">
-                {history
-                  .slice()
-                  .reverse()
-                  .map((session) => (
-                    <div key={session.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border">
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{getTopicName(session.topicId, session.subtopicId)}</p>
-                        <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                          <span>📅 {session.date}</span>
-                          <span>🍅 {session.sessionsCompleted} pomodoros</span>
-                          <span>⏱️ {Math.floor(session.focusMinutes / 60)}h {Math.round(session.focusMinutes % 60)}m foco</span>
-                          <span>☕ {session.breakMinutes}m pausa</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditSession(session)}
-                          className="text-primary hover:bg-primary/10"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteSession(session.id)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                {history.map((session) => (
+                  <div key={session.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{getTopicName(session.topicId, session.subtopicId)}</p>
+                      <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                        <span>📅 {session.date}</span>
+                        <span>🍅 {session.sessionsCompleted} pomodoros</span>
+                        <span>⏱️ {Math.floor(session.focusMinutes / 60)}h {Math.round(session.focusMinutes % 60)}m foco</span>
+                        <span>☕ {session.breakMinutes}m pausa</span>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditSession(session)}
+                        className="text-primary hover:bg-primary/10"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
