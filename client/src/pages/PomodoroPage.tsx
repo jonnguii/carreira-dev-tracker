@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { ArrowLeft, Clock, Trash2, Calendar } from "lucide-react";
+import { ArrowLeft, Clock, Trash2, Calendar, Edit2 } from "lucide-react";
 import PomodoroTimer from "@/components/PomodoroTimer";
+import { TOPICS_WITH_SUBTOPICS } from "@/data/subtopics";
 
 interface PomodoroSession {
   id: string;
@@ -12,12 +16,18 @@ interface PomodoroSession {
   totalMinutes: number;
   focusMinutes: number;
   breakMinutes: number;
+  topicId?: string;
+  subtopicId?: string;
 }
 
 export default function PomodoroPage() {
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("");
   const [history, setHistory] = useState<PomodoroSession[]>([]);
+  const [editingSession, setEditingSession] = useState<PomodoroSession | null>(null);
+  const [editValues, setEditValues] = useState({ sessions: 0, focus: 0, break: 0 });
 
   // Carregar histórico do localStorage
   useEffect(() => {
@@ -45,8 +55,10 @@ export default function PomodoroPage() {
     const today = new Date().toLocaleDateString("pt-BR");
     const existingSession = history.find((s) => s.date === today);
 
+    const topicData = selectedTopic ? TOPICS_WITH_SUBTOPICS.find((t) => t.id === selectedTopic) : null;
+    const subtopicData = topicData?.subtopics.find((s) => s.id === selectedSubtopic);
+
     if (existingSession) {
-      // Atualizar sessão do dia
       setHistory((prev) =>
         prev.map((s) =>
           s.date === today
@@ -55,12 +67,14 @@ export default function PomodoroPage() {
                 sessionsCompleted: s.sessionsCompleted + sessionsCompleted,
                 totalMinutes: s.totalMinutes + totalMinutes,
                 focusMinutes: s.focusMinutes + totalMinutes,
+                breakMinutes: s.breakMinutes + sessionsCompleted * 5,
+                topicId: selectedTopic || s.topicId,
+                subtopicId: selectedSubtopic || s.subtopicId,
               }
             : s
         )
       );
     } else {
-      // Criar nova sessão
       const newSession: PomodoroSession = {
         id: Date.now().toString(),
         date: today,
@@ -68,13 +82,16 @@ export default function PomodoroPage() {
         totalMinutes,
         focusMinutes: totalMinutes,
         breakMinutes: sessionsCompleted * 5,
+        topicId: selectedTopic,
+        subtopicId: selectedSubtopic,
       };
       setHistory((prev) => [newSession, ...prev]);
     }
 
-    // Resetar contadores
     setTotalMinutes(0);
     setSessionsCompleted(0);
+    setSelectedTopic("");
+    setSelectedSubtopic("");
   };
 
   const handleDeleteSession = (id: string) => {
@@ -88,10 +105,52 @@ export default function PomodoroPage() {
     }
   };
 
+  const handleEditSession = (session: PomodoroSession) => {
+    setEditingSession(session);
+    setEditValues({
+      sessions: session.sessionsCompleted,
+      focus: session.focusMinutes,
+      break: session.breakMinutes,
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingSession) return;
+
+    setHistory((prev) =>
+      prev.map((s) =>
+        s.id === editingSession.id
+          ? {
+              ...s,
+              sessionsCompleted: editValues.sessions,
+              focusMinutes: editValues.focus,
+              breakMinutes: editValues.break,
+              totalMinutes: editValues.focus,
+            }
+          : s
+      )
+    );
+
+    setEditingSession(null);
+  };
+
+  // Obter tópico selecionado
+  const currentTopic = selectedTopic ? TOPICS_WITH_SUBTOPICS.find((t) => t.id === selectedTopic) : null;
+
   // Calcular estatísticas
   const totalSessionsAllTime = history.reduce((sum, s) => sum + s.sessionsCompleted, 0);
   const totalMinutesAllTime = history.reduce((sum, s) => sum + s.totalMinutes, 0);
   const totalHoursAllTime = Math.floor(totalMinutesAllTime / 60);
+
+  // Obter nome do tópico e sub-tópico
+  const getTopicName = (topicId?: string, subtopicId?: string) => {
+    if (!topicId) return "Sem tópico";
+    const topic = TOPICS_WITH_SUBTOPICS.find((t) => t.id === topicId);
+    if (!topic) return "Tópico não encontrado";
+    if (!subtopicId) return topic.title;
+    const subtopic = topic.subtopics.find((s) => s.id === subtopicId);
+    return subtopic ? `${topic.title} > ${subtopic.name}` : topic.title;
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -119,6 +178,51 @@ export default function PomodoroPage() {
         <div className="mb-8">
           <PomodoroTimer onSessionComplete={handleSessionComplete} />
         </div>
+
+        {/* Seletor de Tópico */}
+        <Card className="mb-8 border-primary/50">
+          <CardHeader>
+            <CardTitle>Selecione o Tópico Estudado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold mb-2 block">Tópico</label>
+              <Select value={selectedTopic} onValueChange={(value) => {
+                setSelectedTopic(value);
+                setSelectedSubtopic("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um tópico..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TOPICS_WITH_SUBTOPICS.map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.title} {topic.category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {currentTopic && (
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Sub-tema</label>
+                <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um sub-tema..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currentTopic.subtopics.map((subtopic) => (
+                      <SelectItem key={subtopic.id} value={subtopic.id}>
+                        {subtopic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Estatísticas da Sessão Atual */}
         <Card className="mb-8 border-2 border-primary/50">
@@ -208,21 +312,91 @@ export default function PomodoroPage() {
                     className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg border border-border hover:bg-secondary/50 transition-colors"
                   >
                     <div className="flex-1">
-                      <p className="font-semibold text-foreground">{session.date}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold text-foreground">{session.date}</p>
+                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                          {getTopicName(session.topicId, session.subtopicId)}
+                        </span>
+                      </div>
                       <div className="flex gap-6 mt-2 text-sm text-muted-foreground">
                         <span>🍅 {session.sessionsCompleted} pomodoros</span>
                         <span>⏱️ {Math.floor(session.focusMinutes / 60)}h {session.focusMinutes % 60}m foco</span>
                         <span>☕ {session.breakMinutes}m pausa</span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteSession(session.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditSession(session)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Editar Sessão - {session.date}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-sm font-semibold mb-2 block">Pomodoros</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={editValues.sessions}
+                                onChange={(e) =>
+                                  setEditValues((prev) => ({
+                                    ...prev,
+                                    sessions: parseInt(e.target.value) || 0,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-semibold mb-2 block">Tempo de Foco (minutos)</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={editValues.focus}
+                                onChange={(e) =>
+                                  setEditValues((prev) => ({
+                                    ...prev,
+                                    focus: parseInt(e.target.value) || 0,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-semibold mb-2 block">Tempo de Pausa (minutos)</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={editValues.break}
+                                onChange={(e) =>
+                                  setEditValues((prev) => ({
+                                    ...prev,
+                                    break: parseInt(e.target.value) || 0,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <Button onClick={handleSaveEdit} className="w-full">
+                              Salvar Alterações
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
