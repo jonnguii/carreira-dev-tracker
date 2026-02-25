@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
-import { ArrowLeft, BookOpen, BarChart3, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, BarChart3, Plus, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -140,6 +140,12 @@ export default function DashboardV2() {
             <h1 className="text-2xl font-bold text-primary">Meu Progresso</h1>
           </div>
           <div className="flex gap-2">
+            <Link href="/sync">
+              <Button variant="outline" size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sincronizar
+              </Button>
+            </Link>
             <Link href="/study-tracker">
               <Button variant="outline" size="sm">
                 Rastreador de Horas
