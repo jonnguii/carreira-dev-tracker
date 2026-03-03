@@ -80,7 +80,7 @@ export default function DashboardV2() {
 
   const handleAddNewTopic = () => {
     if (newTopicName.trim()) {
-      const categoryName = `Java${newTopicCategory}`;
+      const categoryName = newTopicCategory;
       addTopic({
         category: categoryName,
         title: newTopicName,
@@ -140,6 +140,13 @@ export default function DashboardV2() {
             <h1 className="text-2xl font-bold text-primary">Meu Progresso</h1>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpandedCategories([])}
+            >
+              Minimizar Tudo
+            </Button>
             <Link href="/sync">
               <Button variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -154,6 +161,11 @@ export default function DashboardV2() {
             <Link href="/pomodoro">
               <Button variant="outline" size="sm">
                 Pomodoro
+              </Button>
+            </Link>
+            <Link href="/course-tracker">
+              <Button variant="outline" size="sm">
+                Rastreador de Cursos
               </Button>
             </Link>
           </div>

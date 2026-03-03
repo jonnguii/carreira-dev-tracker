@@ -13,6 +13,7 @@ import TrilhaReact from "./pages/TrilhaReact";
 import TrilhaJasper from "./pages/TrilhaJasper";
 import TrilhaJSF from "./pages/TrilhaJSF";
 import SyncPage from "./pages/SyncPage";
+import CourseTracker from "./pages/CourseTracker";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path={"/jasper-sql"} component={TrilhaJasper} />
       <Route path={"/jsf-jsp"} component={TrilhaJSF} />
       <Route path={"/sync"} component={SyncPage} />
+      <Route path={"/course-tracker"} component={CourseTracker} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
