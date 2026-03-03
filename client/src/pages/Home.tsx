@@ -47,7 +47,12 @@ export default function Home() {
           <div className="flex gap-4 justify-center flex-wrap">
             <Link href="/dashboard">
               <Button size="lg" className="bg-primary hover:bg-primary/90">
-                Começar Trilha <ArrowRight className="ml-2 w-4 h-4" />
+                Dashboard Estudo <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+            <Link href="/course-tracker">
+              <Button size="lg" variant="outline">
+                Dashboard Cursos <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
           </div>

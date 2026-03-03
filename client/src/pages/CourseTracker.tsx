@@ -26,7 +26,16 @@ export default function CourseTracker() {
   const [newCourseName, setNewCourseName] = useState("");
   const [newCourseDescription, setNewCourseDescription] = useState("");
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingCourseData, setEditingCourseData] = useState<{ name: string; description: string }>({
+    name: "",
+    description: "",
+  });
   const [newModuleName, setNewModuleName] = useState("");
+  const [editingModule, setEditingModule] = useState<{ courseId: string; moduleId: string; name: string } | null>(null);
+  const [openAddCourseDialog, setOpenAddCourseDialog] = useState(false);
+  const [openAddModuleDialog, setOpenAddModuleDialog] = useState(false);
+  const [openEditCourseDialog, setOpenEditCourseDialog] = useState(false);
+  const [openEditModuleDialog, setOpenEditModuleDialog] = useState(false);
 
   // Carregar cursos do localStorage
   useEffect(() => {
@@ -65,6 +74,28 @@ export default function CourseTracker() {
       setCourses((prev) => [newCourse, ...prev]);
       setNewCourseName("");
       setNewCourseDescription("");
+      setOpenAddCourseDialog(false);
+    }
+  };
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    setEditingCourseData({ name: course.name, description: course.description });
+    setOpenEditCourseDialog(true);
+  };
+
+  const handleSaveEditCourse = () => {
+    if (editingCourse && editingCourseData.name.trim()) {
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.id === editingCourse.id
+            ? { ...c, name: editingCourseData.name, description: editingCourseData.description }
+            : c
+        )
+      );
+      setEditingCourse(null);
+      setEditingCourseData({ name: "", description: "" });
+      setOpenEditCourseDialog(false);
     }
   };
 
@@ -109,6 +140,32 @@ export default function CourseTracker() {
         })
       );
       setNewModuleName("");
+      setOpenAddModuleDialog(false);
+    }
+  };
+
+  const handleEditModule = (courseId: string, moduleId: string, moduleName: string) => {
+    setEditingModule({ courseId, moduleId, name: moduleName });
+    setOpenEditModuleDialog(true);
+  };
+
+  const handleSaveEditModule = () => {
+    if (editingModule && editingModule.name.trim()) {
+      setCourses((prev) =>
+        prev.map((course) => {
+          if (course.id === editingModule.courseId) {
+            return {
+              ...course,
+              modules: course.modules.map((m) =>
+                m.id === editingModule.moduleId ? { ...m, name: editingModule.name } : m
+              ),
+            };
+          }
+          return course;
+        })
+      );
+      setEditingModule(null);
+      setOpenEditModuleDialog(false);
     }
   };
 
@@ -175,7 +232,7 @@ export default function CourseTracker() {
 
         {/* Botão para adicionar novo curso */}
         <div className="mb-8">
-          <Dialog>
+          <Dialog open={openAddCourseDialog} onOpenChange={setOpenAddCourseDialog}>
             <DialogTrigger asChild>
               <Button className="w-full gap-2">
                 <Plus className="w-4 h-4" />
@@ -242,13 +299,56 @@ export default function CourseTracker() {
                           Adicionado em {course.createdAt}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteCourse(course.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Dialog open={openEditCourseDialog && editingCourse?.id === course.id} onOpenChange={setOpenEditCourseDialog}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditCourse(course)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Curso</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-semibold mb-2 block">Nome do Curso</label>
+                                <Input
+                                  value={editingCourseData.name}
+                                  onChange={(e) =>
+                                    setEditingCourseData({ ...editingCourseData, name: e.target.value })
+                                  }
+                                  placeholder="Ex: React Avançado"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-semibold mb-2 block">Descrição (opcional)</label>
+                                <Input
+                                  value={editingCourseData.description}
+                                  onChange={(e) =>
+                                    setEditingCourseData({ ...editingCourseData, description: e.target.value })
+                                  }
+                                  placeholder="Ex: Aprenda React com hooks e context"
+                                />
+                              </div>
+                              <Button onClick={handleSaveEditCourse} className="w-full">
+                                Salvar
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteCourse(course.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Barra de progresso */}
@@ -292,6 +392,37 @@ export default function CourseTracker() {
                           >
                             {module.name}
                           </span>
+                          <Dialog open={openEditModuleDialog && editingModule?.moduleId === module.id} onOpenChange={setOpenEditModuleDialog}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditModule(course.id, module.id, module.name)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Módulo</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm font-semibold mb-2 block">Nome do Módulo</label>
+                                  <Input
+                                    value={editingModule?.name || ""}
+                                    onChange={(e) =>
+                                      setEditingModule({ ...editingModule!, name: e.target.value })
+                                    }
+                                    placeholder="Ex: Introdução ao React"
+                                  />
+                                </div>
+                                <Button onClick={handleSaveEditModule} className="w-full">
+                                  Salvar
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -303,7 +434,7 @@ export default function CourseTracker() {
                       ))}
 
                       {/* Adicionar módulo */}
-                      <Dialog>
+                      <Dialog open={openAddModuleDialog && editingCourse?.id === course.id} onOpenChange={setOpenAddModuleDialog}>
                         <DialogTrigger asChild>
                           <Button
                             variant="outline"
