@@ -1,11 +1,36 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { ArrowRight, Code, Moon, Sun } from "lucide-react";
+import { ArrowRight, Code, Moon, Sun, Search } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Input } from "@/components/ui/input";
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
+  const [searchFocus, setSearchFocus] = useState("");
+
+  const focusTopics = [
+    {
+      name: "Java",
+      color: "border-red-500/50 text-red-600",
+      description: "Fundamentos, OOP, Collections, Exception Handling, Streams, Lambdas, Generics",
+    },
+    {
+      name: "Spring Boot",
+      color: "border-orange-500/50 text-orange-600",
+      description: "IoC, DI, Beans, Controllers, Services, DTOs, REST APIs, JPA, Configuração",
+    },
+    {
+      name: "SQL",
+      color: "border-yellow-500/50 text-yellow-600",
+      description: "SELECT, JOINs, GROUP BY, Agregações, Índices, Otimização, Transações",
+    },
+  ];
+
+  const filteredTopics = focusTopics.filter((topic) =>
+    topic.name.toLowerCase().includes(searchFocus.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -97,45 +122,46 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Foco Inicial */}
+      {/* Foco Inicial com Filtro */}
       <section className="py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <h3 className="text-2xl font-bold mb-8 text-center">
             Meu Foco Inicial
           </h3>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="border-2 border-red-500/50">
-              <CardHeader>
-                <CardTitle className="text-red-600">Java</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Fundamentos, OOP, Collections, Exception Handling, Streams, Lambdas, Generics
-              </CardContent>
-            </Card>
 
-            <Card className="border-2 border-orange-500/50">
-              <CardHeader>
-                <CardTitle className="text-orange-600">Spring Boot</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                IoC, DI, Beans, Controllers, Services, DTOs, REST APIs, JPA, Configuração
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-yellow-500/50">
-              <CardHeader>
-                <CardTitle className="text-yellow-600">SQL</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                SELECT, JOINs, GROUP BY, Agregações, Índices, Otimização, Transações
-              </CardContent>
-            </Card>
+          {/* Filtro de Busca */}
+          <div className="mb-8 relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar tópico (Java, Spring Boot, SQL)..."
+              value={searchFocus}
+              onChange={(e) => setSearchFocus(e.target.value)}
+              className="pl-10"
+            />
           </div>
+          
+          {filteredTopics.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-6">
+              {filteredTopics.map((topic) => (
+                <Card key={topic.name} className={`border-2 ${topic.color}`}>
+                  <CardHeader>
+                    <CardTitle className={topic.color.split(" ")[1]}>
+                      {topic.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    {topic.description}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Nenhum tópico encontrado para "{searchFocus}"</p>
+            </div>
+          )}
         </div>
       </section>
-
-
 
       {/* Footer */}
       <footer className="border-t py-8 text-center text-muted-foreground">
