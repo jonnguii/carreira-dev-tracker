@@ -39,7 +39,7 @@ export default function Home() {
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Code className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-primary">Roadmappnpm Dev</h1>
+            <h1 className="text-2xl font-bold text-primary">Roadmap Dev</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
