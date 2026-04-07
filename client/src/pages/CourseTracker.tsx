@@ -4,13 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Trash2, Edit2, X, CheckCircle2, ChevronUp, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit2, X, CheckCircle2, ChevronUp, GripVertical, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CourseModule {
   id: string;
   name: string;
   completed: boolean;
+  description?: string;
+  resources?: {
+    title: string;
+    url: string;
+  }[];
 }
 
 interface Course {
@@ -32,12 +38,15 @@ export default function CourseTracker() {
     description: "",
   });
   const [newModuleName, setNewModuleName] = useState("");
-  const [editingModule, setEditingModule] = useState<{ courseId: string; moduleId: string; name: string } | null>(null);
+  const [editingModule, setEditingModule] = useState<{ courseId: string; moduleId: string; name: string; description?: string } | null>(null);
+  const [editingModuleDescription, setEditingModuleDescription] = useState("");
   const [openAddCourseDialog, setOpenAddCourseDialog] = useState(false);
   const [openAddModuleDialog, setOpenAddModuleDialog] = useState(false);
   const [openEditCourseDialog, setOpenEditCourseDialog] = useState(false);
   const [openEditModuleDialog, setOpenEditModuleDialog] = useState(false);
   const [draggedCourse, setDraggedCourse] = useState<string | null>(null);
+  const [draggedModule, setDraggedModule] = useState<{ courseId: string; moduleId: string } | null>(null);
+  const [expandedModuleDescription, setExpandedModuleDescription] = useState<string | null>(null);
 
   // Carregar cursos do localStorage
   useEffect(() => {
@@ -76,6 +85,8 @@ export default function CourseTracker() {
             id: `${Date.now()}-1`,
             name: "Módulo inicial",
             completed: false,
+            description: "",
+            resources: [],
           },
         ],
         createdAt: new Date().toISOString(),
@@ -142,6 +153,8 @@ export default function CourseTracker() {
                   id: Date.now().toString(),
                   name: newModuleName,
                   completed: false,
+                  description: "",
+                  resources: [],
                 },
               ],
             };
@@ -154,8 +167,9 @@ export default function CourseTracker() {
     }
   };
 
-  const handleEditModule = (courseId: string, moduleId: string, moduleName: string) => {
-    setEditingModule({ courseId, moduleId, name: moduleName });
+  const handleEditModule = (courseId: string, moduleId: string, moduleName: string, description?: string) => {
+    setEditingModule({ courseId, moduleId, name: moduleName, description });
+    setEditingModuleDescription(description || "");
     setOpenEditModuleDialog(true);
   };
 
@@ -167,7 +181,9 @@ export default function CourseTracker() {
             return {
               ...course,
               modules: course.modules.map((m) =>
-                m.id === editingModule.moduleId ? { ...m, name: editingModule.name } : m
+                m.id === editingModule.moduleId
+                  ? { ...m, name: editingModule.name, description: editingModuleDescription }
+                  : m
               ),
             };
           }
@@ -175,6 +191,7 @@ export default function CourseTracker() {
         })
       );
       setEditingModule(null);
+      setEditingModuleDescription("");
       setOpenEditModuleDialog(false);
     }
   };
@@ -201,17 +218,17 @@ export default function CourseTracker() {
     );
   };
 
-  const handleDragStart = (e: React.DragEvent, courseId: string) => {
+  const handleDragStartCourse = (e: React.DragEvent, courseId: string) => {
     setDraggedCourse(courseId);
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOverCourse = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = (e: React.DragEvent, targetCourseId: string) => {
+  const handleDropCourse = (e: React.DragEvent, targetCourseId: string) => {
     e.preventDefault();
     if (!draggedCourse || draggedCourse === targetCourseId) {
       setDraggedCourse(null);
@@ -232,6 +249,45 @@ export default function CourseTracker() {
     });
 
     setDraggedCourse(null);
+  };
+
+  const handleDragStartModule = (e: React.DragEvent, courseId: string, moduleId: string) => {
+    setDraggedModule({ courseId, moduleId });
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOverModule = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDropModule = (e: React.DragEvent, targetCourseId: string, targetModuleId: string) => {
+    e.preventDefault();
+    if (!draggedModule || (draggedModule.courseId === targetCourseId && draggedModule.moduleId === targetModuleId)) {
+      setDraggedModule(null);
+      return;
+    }
+
+    setCourses((prev) => {
+      return prev.map((course) => {
+        // Se o módulo é do mesmo curso
+        if (draggedModule.courseId === targetCourseId && course.id === targetCourseId) {
+          const draggedIndex = course.modules.findIndex((m) => m.id === draggedModule.moduleId);
+          const targetIndex = course.modules.findIndex((m) => m.id === targetModuleId);
+
+          if (draggedIndex === -1 || targetIndex === -1) return course;
+
+          const newModules = [...course.modules];
+          const [draggedItem] = newModules.splice(draggedIndex, 1);
+          newModules.splice(targetIndex, 0, draggedItem);
+
+          return { ...course, modules: newModules };
+        }
+        return course;
+      });
+    });
+
+    setDraggedModule(null);
   };
 
   const getProgress = (course: Course) => {
@@ -335,9 +391,9 @@ export default function CourseTracker() {
                   key={course.id}
                   className="border-2 border-primary/20 cursor-move hover:border-primary/40 transition-colors"
                   draggable
-                  onDragStart={(e) => handleDragStart(e, course.id)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, course.id)}
+                  onDragStart={(e) => handleDragStartCourse(e, course.id)}
+                  onDragOver={handleDragOverCourse}
+                  onDrop={(e) => handleDropCourse(e, course.id)}
                   style={{
                     opacity: draggedCourse === course.id ? 0.5 : 1,
                   }}
@@ -453,61 +509,92 @@ export default function CourseTracker() {
                         {course.modules.map((module) => (
                           <div
                             key={module.id}
-                            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors"
+                            draggable
+                            onDragStart={(e) => handleDragStartModule(e, course.id, module.id)}
+                            onDragOver={handleDragOverModule}
+                            onDrop={(e) => handleDropModule(e, course.id, module.id)}
+                            className={`p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors cursor-move ${
+                              draggedModule?.moduleId === module.id ? "opacity-50" : ""
+                            }`}
                           >
-                            <Checkbox
-                              checked={module.completed}
-                              onCheckedChange={() =>
-                                handleToggleModule(course.id, module.id)
-                              }
-                            />
-                            <span
-                              className={`flex-1 ${
-                                module.completed
-                                  ? "line-through text-muted-foreground"
-                                  : ""
-                              }`}
-                            >
-                              {module.name}
-                            </span>
-                            <Dialog open={openEditModuleDialog && editingModule?.moduleId === module.id} onOpenChange={setOpenEditModuleDialog}>
-                              <DialogTrigger asChild>
+                            <div className="flex items-start gap-3">
+                              <GripVertical className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
+                              <Checkbox
+                                checked={module.completed}
+                                onCheckedChange={() =>
+                                  handleToggleModule(course.id, module.id)
+                                }
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-sm ${
+                                    module.completed
+                                      ? "line-through text-muted-foreground"
+                                      : ""
+                                  }`}
+                                >
+                                  {module.name}
+                                </p>
+                                {module.description && (
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {module.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Dialog open={openEditModuleDialog && editingModule?.moduleId === module.id} onOpenChange={setOpenEditModuleDialog}>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleEditModule(course.id, module.id, module.name, module.description)}
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-lg">
+                                    <DialogHeader>
+                                      <DialogTitle>Editar Módulo</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <label className="text-sm font-semibold mb-2 block">Nome do Módulo</label>
+                                        <Input
+                                          value={editingModule?.name || ""}
+                                          onChange={(e) =>
+                                            setEditingModule({ ...editingModule!, name: e.target.value })
+                                          }
+                                          placeholder="Ex: Introdução ao React"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-semibold mb-2 block">
+                                          Descrição (links de anotações, vídeos, etc)
+                                        </label>
+                                        <Textarea
+                                          value={editingModuleDescription}
+                                          onChange={(e) => setEditingModuleDescription(e.target.value)}
+                                          placeholder="Ex: https://youtube.com/watch?v=... ou https://notion.so/..."
+                                          className="min-h-24"
+                                        />
+                                      </div>
+                                      <Button onClick={handleSaveEditModule} className="w-full">
+                                        Salvar
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleEditModule(course.id, module.id, module.name)}
+                                  className="h-8 w-8"
+                                  onClick={() => handleDeleteModule(course.id, module.id)}
                                 >
-                                  <Edit2 className="w-4 h-4" />
+                                  <Trash2 className="w-3 h-3" />
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Editar Módulo</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="text-sm font-semibold mb-2 block">Nome do Módulo</label>
-                                    <Input
-                                      value={editingModule?.name || ""}
-                                      onChange={(e) =>
-                                        setEditingModule({ ...editingModule!, name: e.target.value })
-                                      }
-                                      placeholder="Ex: Introdução ao React"
-                                    />
-                                  </div>
-                                  <Button onClick={handleSaveEditModule} className="w-full">
-                                    Salvar
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteModule(course.id, module.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                              </div>
+                            </div>
                           </div>
                         ))}
 
