@@ -38,6 +38,7 @@ export default function CourseTracker() {
     description: "",
   });
   const [newModuleName, setNewModuleName] = useState("");
+  const [newModuleDescription, setNewModuleDescription] = useState("");
   const [editingModule, setEditingModule] = useState<{ courseId: string; moduleId: string; name: string; description?: string } | null>(null);
   const [editingModuleDescription, setEditingModuleDescription] = useState("");
   const [openAddCourseDialog, setOpenAddCourseDialog] = useState(false);
@@ -153,7 +154,7 @@ export default function CourseTracker() {
                   id: Date.now().toString(),
                   name: newModuleName,
                   completed: false,
-                  description: "",
+                  description: newModuleDescription,
                   resources: [],
                 },
               ],
@@ -163,6 +164,7 @@ export default function CourseTracker() {
         })
       );
       setNewModuleName("");
+      setNewModuleDescription("");
       setOpenAddModuleDialog(false);
     }
   };
@@ -506,7 +508,9 @@ export default function CourseTracker() {
                     <CardContent>
                       <div className="space-y-3">
                         {/* Módulos */}
-                        {course.modules.map((module) => (
+                        {course.modules.map((module) => {
+                          const isDragging = draggedModule?.courseId === course.id && draggedModule?.moduleId === module.id;
+                          return (
                           <div
                             key={module.id}
                             draggable
@@ -514,7 +518,7 @@ export default function CourseTracker() {
                             onDragOver={handleDragOverModule}
                             onDrop={(e) => handleDropModule(e, course.id, module.id)}
                             className={`p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors cursor-move ${
-                              draggedModule?.moduleId === module.id ? "opacity-50" : ""
+                              isDragging ? "opacity-50" : ""
                             }`}
                           >
                             <div className="flex items-start gap-3">
@@ -596,7 +600,8 @@ export default function CourseTracker() {
                               </div>
                             </div>
                           </div>
-                        ))}
+                        );
+                        })}
 
                         {/* Adicionar módulo */}
                         <Dialog open={openAddModuleDialog && editingCourse?.id === course.id} onOpenChange={setOpenAddModuleDialog}>
@@ -610,19 +615,30 @@ export default function CourseTracker() {
                               Adicionar Módulo
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="max-w-lg">
                             <DialogHeader>
-                              <DialogTitle>Adicionar Módulo a {course.name}</DialogTitle>
+                              <DialogTitle>Adicionar Modulo a {course.name}</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
                                 <label className="text-sm font-semibold mb-2 block">
-                                  Nome do Módulo
+                                  Nome do Modulo
                                 </label>
                                 <Input
                                   value={newModuleName}
                                   onChange={(e) => setNewModuleName(e.target.value)}
-                                  placeholder="Ex: Introdução ao React"
+                                  placeholder="Ex: Introducao ao React"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-semibold mb-2 block">
+                                  Descricao (links de anotacoes, videos, etc)
+                                </label>
+                                <Textarea
+                                  value={newModuleDescription}
+                                  onChange={(e) => setNewModuleDescription(e.target.value)}
+                                  placeholder="Ex: https://youtube.com/watch?v=... ou https://notion.so/..."
+                                  className="min-h-20"
                                 />
                               </div>
                               <Button
